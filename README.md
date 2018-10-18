@@ -3,7 +3,7 @@ About this page
 
 Welcome to my STAT545 private repository. This repository will primarily contain the study materials and assignments associated with [STAT545][Stat545Link]. 
 
-Links to the `.md` and `.rmd` "Homework 04: Tidy data and joins"" for the STAT545A.
+Links to the `.md` and `.rmd` "Homework 05: Factor and figure management" for the STAT545A.
 
 [hw005.md][hw004.md] \| [hw005.rmd][hw005.rmd]  
 
