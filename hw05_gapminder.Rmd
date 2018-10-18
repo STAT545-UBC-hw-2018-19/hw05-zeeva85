@@ -1,0 +1,48 @@
+---
+title: "hw05_gapminder"
+author: Seevasant Indran
+date: "`r format(Sys.time(), '%d %B, %Y')`"   
+output:  
+  github_document:  
+    toc: yes
+---
+
+  
+<details open>
+  <summary>
+Packages required
+  </summary>  
+     
+-   [tidyverse](http://tidyverse.tidyverse.org/) (includes [ggplot2](http://ggplot2.tidyverse.org/), [dplyr](http://dplyr.tidyverse.org/), [tidyr](http://tidyr.tidyverse.org/), [readr](http://readr.tidyverse.org/), [tibble](http://tibble.tidyverse.org/))  
+- [gapminder](https://cran.r-project.org/web/packages/gapminder/index.html)    
+- [knitr](https://cran.r-project.org/web/packages/knitr/index.html)    
+  
+**Install by running**  
+```
+install.packages("packageName", dependencies = TRUE)
+```
+</details>  
+   
+   
+```{r setupchunk, global_options, include=FALSE}
+## Figure options
+# fig.width=12, fig.height=8
+
+knitr::opts_chunk$set(fig.path='figs/', warning=FALSE, message=FALSE)
+```
+
+
+```{r packagechunk, message=FALSE, include = FALSE, include = FALSE}
+
+packages <- c("tidyverse", "gapminder", "knitr", "gridExtra")
+
+if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
+  install.packages(setdiff(packages, rownames(installed.packages())))  
+}
+
+library(tidyverse)
+library(gapminder)
+library(knitr)
+library(gridExtra)
+
+```
