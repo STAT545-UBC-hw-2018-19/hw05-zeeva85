@@ -5,7 +5,7 @@ Welcome to my STAT545 private repository. This repository will primarily contain
 
 Links to the `.md` and `.rmd` "Homework 05: Factor and figure management" for the STAT545A.
 
-[hw005.md][hw004.md] \| [hw005.rmd][hw005.rmd]  
+[hw005.md][hw005.md] \| [hw005.rmd][hw005.rmd]  
 
 [hw001.md][hw001.md] \| [hw002.md][hw002.md] \| [hw003.md][hw003.md] \| [hw004.md][hw004.md] 
 
