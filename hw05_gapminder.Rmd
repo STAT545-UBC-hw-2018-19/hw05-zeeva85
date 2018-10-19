@@ -7,7 +7,6 @@ output:
     toc: yes
 ---
 
-  
 <details open>
   <summary>
 Packages required
@@ -22,7 +21,7 @@ Packages required
 install.packages("packageName", dependencies = TRUE)
 ```
 </details>  
-   
+
    
 ```{r setupchunk, global_options, include=FALSE}
 ## Figure options
@@ -34,7 +33,7 @@ knitr::opts_chunk$set(fig.path='figs/', warning=FALSE, message=FALSE)
 
 ```{r packagechunk, message=FALSE, include = FALSE, include = FALSE}
 
-packages <- c("tidyverse", "gapminder", "knitr", "gridExtra")
+packages <- c("tidyverse", "gapminder", "knitr", "gridExtra", "forcats")
 
 if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
   install.packages(setdiff(packages, rownames(installed.packages())))  
@@ -44,5 +43,717 @@ library(tidyverse)
 library(gapminder)
 library(knitr)
 library(gridExtra)
+library(gganimate)
+library(forcats)
+
 
 ```
+
+
+#### Import datasets.
+
+```{r importchunk}
+
+options(readr.num_columns = 0) 
+
+# Import using the read_csv(), assign to `gapminder_school` variable. Lets call this school dataset
+
+gapminder_school <- read.csv("https://query.data.world/s/bpbbjyj7t6k2u6owizb7tr4fm4h4fq", header = TRUE, check.names = FALSE) 
+
+gapminder_mortality <- read.csv("https://raw.githubusercontent.com/STAT545-UBC-students/hw04-zeeva85/master/data/Infant%20mortality%20rate%20per%201%20000%20births.csv")[,c(1,154:217)]
+passport_index <- read.csv( "https://raw.githubusercontent.com/STAT545-UBC-students/hw05-zeeva85/master/data/passport-index-dataset.csv")
+
+
+```
+
+### Part 1: Factor management.
+
+
+```{r}
+
+# Use `glimpse` look at the `Gapminder` dataset for a change instead of `str` to confirm if what we are working with are indeed factors.
+
+glimpse(gapminder)
+
+```
+
+
+
+```{r}
+## count the number of levels on each variable on the gapminder dataset.
+
+sapply(gapminder, nlevels)
+
+```
+
+There are `r nlevels(gapminder$country)` levels in the `gapminder` country column and there are `r nlevels(gapminder$continent)` levels in the `gapminder` continent column. The `year`, `lifeExp`, `pop`, and `gdpPercap` has no value because the it is only returning the number of levels in a factor columns.
+
+The `country` and `continent` variables are the only factor variables in the `gapminder dataset. Lets try other ways to extract this information.
+ 
+#### Individual levels for country and continent.
+
+# Use `for` loop to check for factors and list out all the levels under that factor variable.
+
+```{r}
+
+for (item in names(gapminder)) # for each item in the names(gapminder)
+  if (is.factor(gapminder[[item]])) { 
+    print (item) # check if its a factor and print the factor variables
+    print(levels(gapminder[[item]])) # then print the levels under those factor variables
+  }
+
+```
+
+It looks like all the levels are ordered in an alphabetical order which doesnt make any sense or is it any useful.
+
+
+# Part 1: Factor management
+
+> With the data set of your choice, after ensuring the variable(s) you’re exploring are indeed factors, you are expected to: 1. Drop factor / levels; 2. Reorder levels based on knowledge from data.
+
+## Drop Oceania and remove unused factor levels
+
+I will use the Base R: `droplevels()` which may operate on an entire data frame or a factor because all that I want to all entries related to Oceania in the gapminder data frame. To accomplish this, I must use the dplyr and forcats packages because I will be relying on various functions from those packages (as you will see below).
+
+Next, I will filter all rows of the data frame for all continents but Oceania.
+
+```{r}
+
+gapminderNoOceania <- gapminder %>%  # Assign dataset to gapminderNoOceania
+  filter(continent != "Oceania") # Looks at continent column and filters NOT (!) Oceania
+
+```
+
+
+
+
+## Sanity checks,
+
+```{r}
+
+# This checks how many times each counties were repeated.
+
+gapminder %>% 
+  group_by(country) %>% # Group by country to count repeats 
+  count() %>%  # Creates a table with times the country reprersented
+  pull(n) %>% # Retrive only the n column to the next argument 
+  unique() # list all unique value, if more than one value means the data is not balanced
+
+# check how many country in oceania region
+
+unique(subset(gapminder, continent == "Oceania", select = country,))
+
+# Dimension differences between before and after filter 
+
+dim(gapminderNoOceania) - dim(gapminder) # Dimension of dataset before and after
+
+# Checks 
+
+nlevels(gapminderNoOceania$country) == nlevels(gapminder$country)
+
+nlevels(gapminderNoOceania$continent) == nlevels(gapminder$continent)
+
+```
+
+Each country is represented 12 times in the dataset for 12 data points in years (1952 - 2007). There is two country which are represented from the Oceania region, Australia and New Zealand. The differences from the dimensions of the rows after filtering the datasets would be -12. 
+
+Additionally the column remains as it was in the original Gapminder dataset. The sanity supports this validation. However, when the levels are checked it seems all the levels are still being retained in the country and the continent column.
+
+
+## Just my two cents
+
+Although the levels are still retained, the information of having them can be useful. Below is a short example of when it would be usefull to retain such information.
+
+```{r}
+responses <- factor(c("Agree", "Agree", "Strongly Agree", "Disagree", "Agree"))
+responses
+
+
+responses2<-factor(c("Agree", "Agree", "Strongly Agree", "Disagree", "Agree"),
+                  levels=c("Strongly Agree", "Agree", "Disagree", "Strongly Disagree"))
+responses2
+
+df <- data.frame(responses = responses) #create a data frame for ggplot
+df2 <- data.frame(responses = responses2)
+
+p1 <- ggplot(data = df, aes(x = responses)) + geom_bar() + scale_x_discrete(drop = FALSE) 
+
+p2 <- ggplot(data = df2, aes(x = responses)) + geom_bar() + scale_x_discrete(drop = FALSE) 
+
+grid.arrange(p1, p2, # makes a grid of plots so multiple plots can be dislpayed
+  ncol = 2, # a plot in a 2 column 1 row format 
+  top = "Response to usefulness of STAT545", # tittle for the grid plots
+  widths = c(0.4, 0.4), # width for the plots
+  clip = FALSE)
+
+```
+
+Woudnt you agree that you would like to have the factor level strongly in such occasions ? Both mini datasets had identitacal responses, however the later included all the response levels. The first one could be under representing in some instances.
+
+**Back to our gapminder dataset..**
+
+Use the `droplevels` function to drop the observations in all the gapminder variable that have no observations. The `forcats` package has a function called `fct_drop` which operates on a factor, the {base} `R` `droplevels` however operates on the entire dataframe or a factor.
+
+
+```{r}
+gapminderNoOceania <- gapminderNoOceania %>% 
+  droplevels() # Drop empty levels (without observation)
+
+str(gapminderNoOceania)# structure of the dropped levels of the new dataset
+
+# Sanity check, If TRUE return warning, else return "Oceania dropped"  
+
+ifelse(any(levels(gapminderNoOceania$continent) == "Oceania" | # checks if there is Oceania OR
+             levels(gapminderNoOceania$country) %in% c("Austalia", "New Zealand")), # checks if there is Australia OR  New Zealand.
+       warning("check levels") , "Oceania dropped") # return warning message if if any is TRUE
+```
+We used a `ifelse` statement above to do some sanity checks on the data and see if Oceania and its represented countries has been dropped. The statement is better to check especially if only a subset of countries were to be dropped. See why below.
+
+```{r}
+levels(gapminderNoOceania$continent)
+
+levels(gapminderNoOceania$country)
+
+```
+The continent was easy and the country got harder, what if there were 30 000 rows like gene expression datasets, still want to look for it manually ?
+
+The second sanity checks confirms that our empty levels have been dropped and the number of observation and variables are what they are suppose to be. Recap that empty levels can be problematic however they do on instances provide useful information as demonstrated above or if your showing your dataset to an alien (It is not apparent to them we have Oceania :D). Think about the end application, most of the times they can be omited but at times they are useful and packages such as `ggplot` coerce character variables to factors anyways before plotting them. 
+
+
+## `Forcats::fct_reorder`  to reorder countries levels
+
+
+```{r}
+gapminderAsia2007 <- gapminder %>% 
+  filter(year == 2007, continent == "Asia") # Filter data for Asia, 2007
+
+gapminderAsia2007 %>% ggplot() + 
+  aes(lifeExp, country) + 
+  geom_point() +
+  ggtitle("Life expectancy Asia 2007") + # Title plot
+  theme(plot.title = element_text(hjust = 0.5)) + # centers title
+  xlab("life expectancy") # x Axis label
+
+
+```
+
+Although, visually not too bad, it is really unapppealing to quickly discriminate the life expectancies of each country. This is where we would apply the `forcats` package to reorder the levels in country. I have never used it before lets type a set of mini help. Use the `forcats` packaage to reorder the factor levels. The default in the `fct_reorder()` is median but we are goung to order it based on mean life expectancy. 
+ 
+
+Usage
+
+fct_reorder(.f, .x, .fun = median, ..., .desc = FALSE)
+
+Arguments
+
+.f -	A factor (or character vector).  
+.x, .y -	The levels of f are reordered so that the values of .fun(.x) (for fct_reorder()) and fun(.x, .y) (for fct_reorder2()) are in ascending order.  
+.fun - n summary function. It should take one vector for fct_reorder, and two vectors for fct_reorder2.  
+...	- Other arguments passed on to .fun. A common argument is na.rm = TRUE.  
+.desc	- Order in descending order? Note the default is different between fct_reorder and fct_reorder2, in order to match the default ordering of factors in the legend.  
+
+
+```{r}
+gapminderAsia2007 %>% 
+  mutate(country = fct_reorder(country, lifeExp, .fun = mean)) %>% # reorder country by life expectancy
+  ggplot() + 
+  aes(lifeExp, country) + 
+  geom_point() +
+  ggtitle("Life expectancy Asia accending 2007") + # Title plot
+  theme(plot.title = element_text(hjust = 0.5)) + # centers title
+  xlab("Mean life expectancy") # x Axis label
+```
+
+It is much more discernible for a quick glace it can ve noted that "Japan" and "Afghanistan" are at the higest and lowest for the mean age in Asia as of 2007. I am from Malaysia so I always end up looking for it, it sits at around 11th from the top. We can try flipping the order around by using the `.desc = TRUE` argument (see above)
+
+
+```{r}
+gapminderAsia2007 %>% 
+  mutate(country = fct_reorder(country, lifeExp, .fun = mean, .desc = TRUE)) %>%
+  ggplot() + 
+  aes(lifeExp, country, size = gdpPercap) + 
+  geom_point() +
+  ggtitle("Life expectancy Asia decending 2007") + # Title plot
+  theme(plot.title = element_text(hjust = 0.5)) + # centers title
+  xlab("Mean life expectancy") # x Axis label
+
+
+```
+
+Recapping back to previous homework, there is a corelation between GDP per capita and life expectancy. The similiar trend is observed here. 
+
+#### Lets look if at the dataframe of the re-ordered factors
+
+```{r}
+gapminderAsia2007 %>%  
+   mutate(country = fct_reorder(country, lifeExp, .fun = mean, .desc = TRUE)) %>%
+   head() 
+
+ gapminderAsia2007 %>%  
+   mutate(country = fct_reorder(country, lifeExp, .fun = mean, .desc = TRUE)) %>%
+   arrange(country) %>%
+   head()
+```
+
+The table however seems to unchanged, in the sense that the `country` still seems to be arraged according to alphabetical order and not life Expectancy even after re-ordering.
+
+Applying the `arrange` function however seems to have reordered the table as seen on the plots above. It is not shown here for the sake of not repeating the same figues, assigning the `arrange()` like below does not change the plot after refactoring. So the plot does seem to be ordered on mean.
+
+```{r eval=FALSE}
+
+gapminderAsia2007 %>% 
+  mutate(country = fct_reorder(country, lifeExp, .fun = mean, .desc = TRUE)) %>%
+  arrange (country)
+  ggplot() + 
+  aes(lifeExp, country, size = gdpPercap) + 
+  geom_point() +
+  ggtitle("Life expectancy Asia decending 2007") + # Title plot
+  theme(plot.title = element_text(hjust = 0.5)) + # centers title
+  xlab("Mean life expectancy") # x Axis label
+
+```
+
+#### Top 5 mean life expectancies
+
+lets take the top 5 mean from the table
+
+```{r }
+# list of top 15 countries life expectancy, from the gapminderAsia2007 dataset. Use to subset gapminder.
+
+AsiaWalkingdead2007 <- gapminderAsia2007 %>%  
+   mutate(country = fct_reorder(country, lifeExp, .fun = mean, .desc = TRUE)) %>%
+  arrange(country) %>%
+  top_n(5, lifeExp) %>% 
+  pull(country)
+
+gapminderAsiaT5WD <- gapminder %>%  # df of just the 5 countries
+  filter(country %in% AsiaWalkingdead2007) %>% 
+  droplevels() # drop unused levels
+
+head(gapminderAsiaT5WD) # view the top six rows of our subset of the gapminder data frame
+  
+```
+
+
+
+
+```{r}
+gapminderAsiaT5WD %>% 
+  ggplot() +
+    aes(year, lifeExp) +
+  geom_line(aes(group = country, colour = country)) + # plot of life expectancy over time for those 5 countries
+  ggtitle("Life expectancy over time for the top 10 Asian Countries in 2007") + # add title
+  theme(plot.title = element_text(hjust = 0.5)) + # centers title
+  xlab("life expectancy")
+
+p3 <- gapminderAsiaT5WD %>% 
+  ggplot() +
+    aes(year, lifeExp) +
+  geom_line(aes(group = country, colour = country)) + # plot of life expectancy over time for those 5 countries
+  xlab("life expectancy")
+```
+
+
+`fct_reorder2(.f, .x, .y)` to reorder factor `.f`, country. The `.x` takes the maximum year and the accompaniying `.y` value which is life expectancy and reorders the `factor` variable country's levels accordingly. 
+
+
+```{r}
+ # Reorders the five Asian countries based on life expectancy.
+gapminderAsiaT5WD %>% 
+  mutate(country = fct_reorder2(country, year, lifeExp)) %>% 
+  ggplot() +
+  aes(year, lifeExp) +
+  geom_line(aes(group = country, colour = country)) + # plot of life expectancy over time for those 5 countries
+  ggtitle("Life expectancy over time for the top 10 Asian Countries in 2007") + # add title
+  theme(plot.title = element_text(hjust = 0.5)) + # centers title
+  xlab("life expectancy")
+
+p4 <- gapminderAsiaT5WD %>% 
+  mutate(country = fct_reorder2(country, year, lifeExp)) %>% 
+  ggplot() +
+  aes(year, lifeExp) +
+  geom_line(aes(group = country, colour = country)) + # plot of life expectancy over time for those 5 countries
+  xlab("life expectancy")
+
+grid.arrange(p3, p4, # makes a grid of plots so multiple plots can be dislpayed
+  nrow = 2, # a plot in a 2 column 1 row format 
+  top = "Before factor vs after factor", # tittle for the grid plots
+  widths = c(0.4, 0.4), # width for the plots
+  clip = FALSE)
+
+```
+
+The reordered plot matches the scatter plot we made at the start where Japan was at the top followed by hong kong, this reassures that the the refactor is based on the life expectancy which does correspond to the earlier dataset of Asia's mean life expectancies in 2007.
+
+
+##  arrange()
+
+
+print out the output for the five countries with the highest life expectancy in 2007.
+
+```{r}
+gapminderAsia2007T5 <- gapminderAsiaT5WD %>%  
+  filter(year %in% 2007) # 5 asian countries with the top life expectancy in the year 2007
+
+gapminderAsia2007T5 
+```
+
+Lets repeat the arrange feat we did in the above section again to see if we end at up at the same plot.
+
+
+```{r}
+
+country <- fct_reorder2(country, year, lifeExp) # stores the reorder in the variable country
+
+gapminderAsia2007T5 <- within(gapminderAsia2007T5, country) # Evaluate reordeing country based on mean life expectancy, within the gapminderAsia2007T5 dataset
+
+gapminderAsia2007T5  # See if the order is changed, then look at the levels to make sure
+levels(gapminderAsia2007T5$country) # look at the levels in the mini dataset
+```
+
+They look the same like the earlier excercise where the levels have not changed, but they do displayed a different order in the plots, lets plot the data.
+
+```{r}
+gapminderAsia2007T5 %>% # look above for comments
+  ggplot(aes(lifeExp, country)) + 
+  geom_point() +
+  ggtitle("Top 5 Life expectancy of Asian countries in 2007") # title
+
+
+
+# See if the old list matches the new list.
+
+ gapminderAsia2007 %>%  
+   mutate(country = fct_reorder(country, lifeExp, .fun = mean, .desc = TRUE)) %>%
+   arrange(country) %>%
+   pull(country) %>% head(5) %in%  levels(gapminderAsia2007T5$country)
+
+ 
+```
+The old list matches the new list. End of the tedious sanity check.
+
+
+# Part 2: File I/O
+
+I will experiment with write_csv()/read_csv(). Since we have already played with and filtered to get the five countries with the highest life expectancy in 2007 in the gapminder data frame, we will use what we have and see how it does when we write a csv of it. We will look at both versions, when the the rows are alphabetically ordered by country and when the rows are in ascending order of life expectancy in 2007. 
+
+First, we will look at the gap_select_2007, which was the output for the five countries with the highest life expectancy in 2007 and the rows are alphabetically ordered by country.
+
+```{r}
+# Write gap_select_2007.csv 
+write_csv(gapminderAsia2007T5, "gapminderAsia2007T5.csv") 
+
+# Read in gap_select_2007.csv 
+gapminderAsia2007T52 <- read_csv("gapminderAsia2007T5.csv") 
+
+gapminderAsia2007T52 == gapminderAsia2007T5 # compare write and read file before and after.
+```
+
+We see that we have still retained the same alphabetical order by country. All six variables that were originally in gap_select_2007, which were country, continent, year, lifeExp, pop and gdpPercap are still there and their values have not changed. The only major difference that I can spot is that we now have a new column X which has five entries ranging from 1 to 5. Why is that happening? One explanation that I found from [here](https://stackoverflow.com/questions/10441437/why-am-i-getting-x-in-my-column-names-when-reading-a-data-frame) states that "read.csv() is a wrapper around the more general read.table() function". The behavior of adding a new column with an X header is consistent with the behaviour of the read.table() function. If we don't want this to happen, we can try to add `row.names = FALSE` to the write.csv() function to override that behaviour of adding an extra column for the rows with 1 to 5. Let's try that and see if we can get just the variables that we want.
+
+```{r}
+# Write gap_select_2007.csv 
+write.csv(gap_select_2007, file = "gap_select_2007_2.csv", row.names=FALSE) 
+
+# Read in gap_select_2007.csv 
+gap_select_2007_read_2 <- read.csv("gap_select_2007_2.csv") 
+
+gap_select_2007_read_2 # let's see what we got when we read in the CSV
+```
+Excellent, that is precisely what we want. The gap_select_2007_read_2 looks exactly like gap_select_2007.
+
+Next, I will look at the when the rows are in ascending order of life expectancy in 2007. In particular, we should look to see if the rows are still arranged in order of ascending life expectancy when we read in the CSV.
+
+```{r}
+# Write gap_select_2007_ascend_arr.csv
+write.csv(gap_select_2007_ascend_arr, file = "gap_select_2007_ascend_arr.csv", row.names=FALSE) 
+
+# Read in gap_select_2007_ascend_arr.csv
+gap_select_2007_ascend_arr <- read.csv("gap_select_2007_ascend_arr.csv") 
+
+gap_select_2007_ascend_arr # let's see what we got when we read in the CSV
+```
+
+Interesting. We had gap_select_2007_ascend_arr in order of ascending life expectancy and when we import the CSV file that we wrote using that data, the row order was preserved.
+
+That certainly makes working with that data easier. We don't have to use the rearrange the data once we import it (well, for this example we don't... other data sets may require data rearrangement).
+
+# Part 3: Visualization design
+
+In the previous HW03 for this course, I tried to use gganimate, which is one kind of package that can enhance ggplot2 by animating ggplot2 graphics. I will try to explore that again and see if, with a better understanding of ggplot2, I can create a plot that is both informative and that more effectively uses the gganimate package.
+
+First, I will load the required packages to use gganimate the way I want to with ggplot2.
+
+```{r message = FALSE}
+
+library(devtools) # load devtools package
+
+devtools::install_github('thomasp85/gganimate') # install gganimate package this way because it is not installing when we use the install.packages() function with R 3.5.1. Also, gganimate is Github-based (not based on CRAN).
+
+library(gganimate) # laod gganimate package
+```
+
+Next, I will show what I made in HW03 by using ggnimate. The following plot/animation illustrates a line chart over time of the mean gdpPercap of Singapore, Kuwait, and Hong Kong. I chose to follow the gdpPercap of those three places over time because they had a high mean GDP per capita of over 25,000 PPP dollars in 2007 (I explored that more in HW03). I thought that revealing the meaan gdpPercap over time would be interesting because then you don't see the whole picture immediately. You can focus more on how the mean gdpPercap got there.
+
+```{r message = FALSE}
+devtools::install_github("SantanderMetGroup/transformeR")
+devtools::install_github("thomasp85/transformr")
+
+library(transformr) # load transformr package to draw line
+
+lifeExp.bycontyr <- gapminder %>% 
+  select(country, year, gdpPercap) %>% # only select country, year, and gdpPercap columns
+  filter((country == "Kuwait" | country == "Singapore" | country == "Hong Kong, China") & year <= 1992) %>%
+  group_by(country, year) %>% # group by country and year
+  mutate(meangdp = mean(gdpPercap)) %>% # add mean gdpPercap columnr
+  ggplot(aes(x =  year, y = meangdp, color = country, group = country)) +
+  geom_path(size = 2, alpha = 0.4, arrow = arrow()) + # lines of the mean gdpPercap of the 3 countries over the years
+  # gganimate code parts are below 
+  transition_reveal(year, year) # transitions are the years
+
+lifeExp.bycontyr # let's see the animation!
+```
+
+One of the problems that I encountered with this animation was that it ran at a decent speed on my RStudio, but when I pushed it to Github, the animation ran at a snail's pace. I was bummed to learn that there wasn't an quick and easy fix to this becaue the transition_reveal() is still being worked on. So, I left it at that.
+
+Now, I am aiming to display different information from the gapminder data set and use the gganimate package. What I want to display is how the GDP per capita and populations of Americas and Europe changed over time. The size of the points corresponds to the mean gdpPercap at that time. For the base of the following code, see [here](https://github.com/thomasp85/gganimate). 
+
+```{r}
+Am_Euro_gap <- gapminder %>% 
+filter(continent == "Americas" | continent == "Europe") %>% 
+group_by(continent, year) %>% # group by continent and year
+mutate(meangdp = mean(gdpPercap)) # add mean gdpPercap columnn
+
+Am_Euro_gap_ggplot2 <- Am_Euro_gap %>% 
+ggplot(aes(pop, gdpPercap, size = meangdp, colour = country)) +
+  scale_colour_manual(values = country_colors) +
+  scale_size(range = c(2, 12)) +
+  geom_point(alpha = 0.8, show.legend = FALSE) +
+  scale_x_log10() + # scale the gdpPercap by log10
+  facet_wrap(~ continent) # facet_wrap by continent
+  
+  Am_Euro_gap_ggplot2 + 
+  # gganimate code parts are below 
+  labs(title = 'Year: {frame_time}', x = 'population', y = 'GDP per capita') +
+  transition_time(year) +
+  ease_aes('linear')
+```
+
+This side-by-side animated plot gives us a feel for how the population vs GDP per capita changed over time for Americas and Europe. It is more general than precise. It allows us to see general patterns, and then we could construct more specific plots for the patterns that we wish to examine.
+
+We can see a couple things right off the bat on the plot. Overall, we can see that as the populations increase, the European countries tyipically have a higher GDP per capita than the countries from the Americas as the years go by. Also note that the size of the points for Europe quickly get much larger than the Americas, meaning that the mean GDP per capita of the European countries gets larger than the Americas countries over time. Another thing to note is that it appears that the GDP per capita of the European countries rise relatively close together as as the population of the European countries stabilizes. On the other hand, for the GDP per capita of the Americas countries, there appears to be two countries which have a relatively stable high population and for which their GDP per capita rise above the rest. Another related observation about the Americas is that the population of the majority of the countries increases over time but their GDP per capita does not get nearly as large as the two countries whose GDP per capita rose above the rest. 
+
+We can try to use use the plotly package to accomplish something similar to what gganimate did. Let's examine how exactly the plot produced by plotly differs from the plot that we produced using gganimate.  
+
+```{r}
+suppressPackageStartupMessages(library(plotly)) # load plotly package
+```
+
+Also, I will install phantomjs() by using `webshot::install_phantomjs()` to display a preview shot of the plot produced using plotly on Github.
+
+First, we can try the easy option and just use ggplotly on Am_Euro_gap_ggplot to see what we get.
+
+```{r}
+ggplotly_Am_Euro <- ggplotly(Am_Euro_gap_ggplot2) # ggplotly Am_Euro_gap_ggplot2 to see what we get.
+
+htmlwidgets::saveWidget(ggplotly_Am_Euro, file = "ggplotly_Am_Euro.html")
+```
+
+The actual plotly plot is may be interacted with [here](https://raw.githack.com/STAT545-UBC-students/hw05-rachlobay/master/ggplotly_Am_Euro.html).
+
+The result looks like art. It is cool that if we hover over the plot produced by plotly, we can see the important information - what the population, GDP per capita, mean GDP per capita, and what country that the spot that we are hovering over pertains to. However, there are some drawbacks to using ggplotly. For example, when I tried to animate the above ggplotly, it became very difficult very quick because the following `  animation_button(x = 1, xanchor = "right", y = 0, yanchor = "bottom")` line in particular threw an error that is difficult to fix. 
+
+On the other hand, if we manually attach am_Euro_gap and manually create a plot_ly of that data, it becomes easier to animate it. For the base of the following code, see [here](https://plot.ly/r/animations/).
+
+```{r message=FALSE, warning=FALSE}
+attach(Am_Euro_gap) # attach am_Euro_gap 
+
+Am_Euro_gap_plotly <-   plot_ly(
+    x = ~pop, 
+    y = ~gdpPercap, 
+    size = ~meangdp, 
+    color = ~country, 
+    frame = ~year, 
+    text = ~country, 
+    hoverinfo = "text",
+    type = 'scatter',
+    mode = 'markers'
+  ) %>%
+  layout(
+    xaxis = list(
+      type = "log"
+    )
+  )
+# plotly version of how the GDP per capita and populations of Americas and Europe changed over time
+
+plotly_Am_Euro_gap <- Am_Euro_gap_plotly %>% 
+  animation_opts(1000, easing = "elastic", redraw = FALSE)  %>% 
+  animation_button(x = 1, xanchor = "right", y = 0, yanchor = "bottom") %>% # add an animation button
+animation_slider(currentvalue = list(prefix = "YEAR ", font = list(color = "red"))) # add a slider
+
+htmlwidgets::saveWidget(plotly_Am_Euro_gap, file = "plotly_Am_Euro_gap.html")
+```
+
+The interactive plot is found [here](https://raw.githack.com/STAT545-UBC-students/hw05-rachlobay/master/plotly_Am_Euro_gap.html).
+
+This basically does what gganimate does - we can track how population vs GDP per capita changed over time for Americas and Europe. One awesome and informative aspect of this plot is that if we hover over the plot produced by plotly, we can see what particular country each dot corresponds to. Hence, plotly makes it easier to track particular countries over time than ggnimate does. The drawback was that I couldn't easily find an equivalent to `facet_wrap()` like we have in ggplot2 so that the plots are side-by-side for the Americas and Europe. So, the countries for Americas and Europe are on the same plot, which is not the separation we were looking for. 
+
+# Part 4: Writing figures to file
+
+I will use `ggsave()` to save a plot to file. Following that, I will use `![Alt text](/path/to/img.png)` to load and embed that figure in my report.
+
+It is worth mentioning that if we have just produced the plot, we can simply type `ggsave("SPIFFY_PLOT_NAME.png")` to save our nifty plot. I will use a simple violin plot with jitter for life expectancy separated by continent to demonstrate this. When I use ggsave(), I will scale the plot to be 3/4 of its original size. We should see this size difference when we load and embed the figure after.
+
+When we use the scale argument, the number that is put in to make the figure bigger or smaller is rather counterintuitive. For a scale number less than 1, the plot will be bigger and for scale number greater than 1 the figure will be smaller.Also, the scale argument changes the size of the text on your plot (meaning the title and axes labels). 
+
+```{r message = FALSE}
+gapminder %>% 
+ggplot(aes(x = continent, y = lifeExp, fill = continent)) + 
+  geom_violin() + # simple violin with jitter of life expectancy by continent
+  geom_jitter(alpha = 0.2, aes(color = continent)) + # add some jitter colored by continent to the boxplot
+  ggtitle("Life expectancy by each continent for the gapminder data")
+
+ggsave("lifeExp-continent-violin-plot.png", scale = 1.75) # save the plot using ggsave() 
+```
+
+Now, I will load and embed the figure.
+
+![lifeExp continent violin plot](lifeExp-continent-violin-plot.png)
+
+
+We can more precisely change the width or height of the figure, using those arguments in ggsave(). You might ask, what are the units of the width and height? Well, the default is the current graphics device size. If we don't want that, we can specify the width and height using the `units` argument. Some units we could use are "cm", "mm", "in". For example, if we wanted the units of both width and height to be in cm, simply type `units = "cm"`. 
+
+```{r}
+ggsave("lifeExp-continent-violin-plot-cm.png", width = 40, height = 40, units = "cm") # show the  effect of changing the width and height to 20 cm each
+```
+
+![lifeExp continent violin plot in cm](lifeExp-continent-violin-plot-cm.png)
+
+
+The dpi argument allows us to change the resolution of the plot. According to this [ggplot2 reference](https://ggplot2.tidyverse.org/reference/ggsave.html), it may take in "retina" (320), "print" (300), or "screen" (72) and applies to only raster output.
+
+So what is a raster output and how does it differ from vector output? Well, this [source](https://designshack.net/articles/layouts/vector-vs-raster-what-do-i-use/) says:
+
+> "There are two types of digital graphics files – vector and raster. Vector images are made of hundreds of thousands of tiny lines and curves (or paths) to create an image. Raster images are composed of pixels. But how do you know what format is best for your next project?""
+
+The above source defines what a raster graphic is:
+
+> "Raster images are often called bitmap images because they are made of millions of tiny squares, called pixels."
+
+Some examples of raster images are graphics like, jpg, gif, png, and tif.
+
+The source confirms that the majority of images that you see on websites are of the raster variety. Such raster images are useful for online publications, but not so much for printed projects because raster images are often saved in low resolution. This is why we would want to change the DPI when we save an image. If we knew we wanted to print the image sometime, go for high DPI so that the image will not "suffer during the printing process".
+
+```{r}
+ggsave("lifeExp-continent-violin-plot-print-dpi.png", dpi = "print") # save the plot with dpi set to print (so we get high DPI and our image will hopefully look good when we go to print it).
+```
+
+And let's load and embed the image to see the high dpi output:
+
+![lifeExp continent violin plot with print dpi](lifeExp-continent-violin-plot-print-dpi.png)
+
+Since we've talked some about rasters, we can move on and talk a little about vectors. Again, I am referring to [here](https://designshack.net/articles/layouts/vector-vs-raster-what-do-i-use/)
+
+> "Vector images, which are made of thin lines and curves known as paths, are rooted in mathematical theory."
+
+So, vectors are in terms of lines and nodes. Vectors are such that they look smooth when you zoom in (which is a benefit over raster images).
+
+Some examples of raster images are graphics like, PDF, SVG, and postscript.
+
+> Text is one of the most common types of vector image. No matter how much you increase a font’s size, for example, its look never changes.
+
+A vector's file size is often smaller than a raster graphic's file size because we are not using millions of pixels, but mathematical-based language in a vector.
+
+One negative side to vectors is that people often just save vectors as a program-specific file. So, vectors sometimes have compatibility issues. This means that if other people don't have access to that particular program, they will have a heck of a time trying to access the program-specific vector file.
+
+Note that ggsave() is advisable for saving ggplot() figures. However, when we are looking at saving non-ggplot figures and writing them to files, there are different methods available.
+
+The process for writing a figure to a vector file in RStudio could be thought of as follows:
+1) Open a graphics device before creating the plot or figure. For example, on Mac I could use quartz(), wheras on a Windows computer I could use windows().
+2) Create the graph.
+3) Turn off (close) the graphics device.
+
+Suppose we have finished typing up and displaying a plot that we want to write as a pdf.
+
+```{r}
+# We created the below plot
+x <- c(1,2,3,4,5) # define x vector 
+y <- c(2,2,2,3,3) # define y vector
+plot(x, y) # simple plot of x versus y 
+```
+
+When we have a figure up on our screen like that, we can quickly write it as a pdf by doing the following:
+
+```{r}
+quartz() # open a graph window before creating graph
+dev.print(pdf, "beautiful-plot.pdf") # the leftmost argument says to put a clone of the above figure as a pdf and the right argument indicates the name of our pdf
+```
+
+The longer way to write a pdf is by using the pdf() function. Even though this is longer, it does have some advantages over the quick method. For example, we Once we have everything we want in our pdf, using this method we should close the pdf file once we are done writing it by typing `dev.off()`
+
+```{r message = FALSE}
+quartz() # open a graph window before creating graph
+pdf("test.pdf") # write the PDF as a file
+x <- c(1,2,3,4,5) # define x vector 
+y <- c(2,4,6,8,10) # define y vector
+plot(x, y) # simple plot of x versus y 
+dev.off() # close file of PDF
+```
+
+We can test that we indeed got a pdf written in our working directory from the list.files() command:
+
+```{r}
+list.files(pattern = "^test*") # see if our test.pdf file is in our working directory
+```
+
+So, there is a test.pdf in our working directory.
+
+# But I want to do more
+
+I will pick a handful of the countries, each of which one may associate with a stereotypical desserts. My objective is to create a new factor by mapping the existing country factor levels to the new levels. The factor that I will create is stereotypical desserts for the countries Australia, France, Germany, Italy, Japan, Turkey, and United States.
+
+So, first I must create an excerpt of the Gapminder data, filtered to just those countries. That is easy enough using our handy filter function and the droplevels() function.
+
+```{r}
+dessert_countries <- c("Australia", "Turkey", "United States", "France", "Germany", "Italy", "Japan")
+
+gap_country_desserts <- gapminder %>% 
+  filter(country %in% dessert_countries) %>% 
+  droplevels() # drop unused factor levels (because we'd still have all the countries from gapminder data, if we didn't).
+
+gap_country_desserts$country %>% 
+  levels() # see what the levels of gap_country_desserts$country are.
+```
+
+Awesome. So gap_country_desserts is comprised of the countries that we will use for our stereotypical dessert factor addition.
+
+Next, I will use a combination of the mutate function from the dplyr package and the fct_recode() function from the forcats package, which will allow me to change the factor levels of the countries to have the desserts for the specified countries.
+
+```{r}
+gap_country_desserts <- gap_country_desserts %>% 
+mutate(stereotypicaldessert = fct_recode(country, "Lamingtons" = "Australia", "Turkish Delight" = "Turkey", "Apple Pie" = "United States", "Crème Brûlée" = "France", "Black Forest Cake" = "Germany", "Cannoli" = "Italy", "Matcha Ice Cream" = "Japan"))
+
+head(gap_country_desserts) # have a look at the head of the dataset to see if we got a new column with the desserts corresponding to the country.
+```
+
+Let's also check the tail of gap_country_desserts to check that the country in the last six rows corresponds to the correct stereotypicaldessert.
+
+```{r}
+tail(gap_country_desserts) 
+```
+
+We get what we wanted. To elaborate, we see that United States corresponds to the Apple Pie level of the stereotypicaldessert factor.
+
+Finally, we will check to see what the levels of stereotypicaldessert are. We expect them to be the desserts that we specified above.
+
+```{r}
+gap_country_desserts$stereotypicaldessert %>% 
+  levels()
+```
+
+As was expected, we got that the levels of stereotypicaldessert are the desserts specified for each of the countries from the above subset.
+
+
+
+
+
