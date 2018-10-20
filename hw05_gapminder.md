@@ -25,8 +25,11 @@ Table of contents
     -   [plotly plots](#plotly-plots)
 -   [Part 4: Writing figures to file](#part-4-writing-figures-to-file)
     -   [`ggsave()` the day](#ggsave-the-day)
--   [But I want to do more](#but-i-want-to-do-more)
+-   [But I want to do more](#but-i-want-to-do-more)   
 
+   
+</details>    
+   
 <details open> <summary> Packages required </summary>
 
 -   [tidyverse](http://tidyverse.tidyverse.org/) (includes [ggplot2](http://ggplot2.tidyverse.org/), [dplyr](http://dplyr.tidyverse.org/), [tidyr](http://tidyr.tidyverse.org/), [readr](http://readr.tidyverse.org/), [tibble](http://tibble.tidyverse.org/))
@@ -38,11 +41,9 @@ Table of contents
 -   [devtools](https://cran.r-project.org/web/packages/devtools/index.html)
 -   [plotly](https://cran.r-project.org/web/packages/plotly/index.html)
 -   [forcats](https://cran.r-project.org/web/packages/forcats/index.html)
--   [gridextra](https://cran.r-project.org/web/packages/gridExtra/index.html)  
+-   [gridextra](https://cran.r-project.org/web/packages/gridExtra/index.html)
 
-</details>    
-   
-**Install by running**  
+**Install by running**
 
     install.packages("packageName", dependencies = TRUE)
 
