@@ -16,8 +16,8 @@ Links to the `.md` and `.rmd` "Homework 05: Factor and figure management" for th
 [hw003.md]: https://github.com/STAT545-UBC-students/hw03-zeeva85/blob/master/hw03_gapminder.md
 [hw004.md]: https://github.com/STAT545-UBC-students/hw04-zeeva85/blob/master/hw04_gapmider.md
 
-[hw005.md]: 
-[hw005.rmd]: 
+[hw005.md]: https://github.com/STAT545-UBC-students/hw05-zeeva85/blob/master/hw05_gapminder.md
+[hw005.rmd]: https://github.com/STAT545-UBC-students/hw05-zeeva85/blob/master/hw05_gapminder.Rmd
 
 [STAT545A_participation]: https://github.com/zeeva85/STAT545A_participation
 [Stat545Link]: http://stat545.com/Classroom/  
