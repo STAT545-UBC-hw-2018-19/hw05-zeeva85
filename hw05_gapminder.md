@@ -1,8 +1,13 @@
 hw05\_gapminder
 ================
-Seevasant Indran
-19 October, 2018
+Seevasant Indran  
+19 October, 2018  
 
+<details>
+  <summary>
+Table of contents
+  </summary>  
+   
 -   [Part 1: Factor management.](#part-1-factor-management.)
     -   [Factor exploration](#factor-exploration)
     -   [Levels in the country and continent factor variables](#levels-in-the-country-and-continent-factor-variables)
@@ -33,9 +38,11 @@ Seevasant Indran
 -   [devtools](https://cran.r-project.org/web/packages/devtools/index.html)
 -   [plotly](https://cran.r-project.org/web/packages/plotly/index.html)
 -   [forcats](https://cran.r-project.org/web/packages/forcats/index.html)
--   [gridextra](https://cran.r-project.org/web/packages/gridExtra/index.html)
+-   [gridextra](https://cran.r-project.org/web/packages/gridExtra/index.html)  
 
-**Install by running**
+</details>    
+   
+**Install by running**  
 
     install.packages("packageName", dependencies = TRUE)
 
